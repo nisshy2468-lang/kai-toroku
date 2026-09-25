@@ -426,13 +426,26 @@ input:focus,textarea:focus,select:focus,button:focus-visible,a:focus-visible{out
     <div class="card">
       <h3>この端末に自動保存</h3>
       <p id="storageMsg">—</p>
+    </div>
+
+    <div class="card">
+      <h3>バックアップを書き出す</h3>
+      <p>機種変更やデータ削除に備えて、ときどき書き出してください。ファイルを選ぶと、端末の「ダウンロード」フォルダに保存されます。</p>
       <div class="stack">
-        <button class="btn btn--ghost" id="btnExportFile" type="button">バックアップを書き出す（JSON）</button>
+        <button class="btn btn--ghost" id="btnExportFile" type="button">ファイルに保存（JSON）</button>
         <button class="btn btn--ghost" id="btnShowJson" type="button">テキストで表示・コピー</button>
-        <textarea class="mono-box" id="jsonBox" hidden spellcheck="false"></textarea>
-        <button class="btn btn--ghost" id="btnImport" type="button">貼り付けた内容を読み込む</button>
+        <textarea class="mono-box" id="jsonBox" hidden spellcheck="false" placeholder="ここにバックアップの内容が出ます"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>バックアップを読み込む</h3>
+      <p>書き出したJSONファイルを選ぶか、内容をこの画面に貼り付けて読み込みます。読み込むと、いまの契約と履歴は置き換わります。</p>
+      <div class="stack">
         <label class="btn btn--ghost" for="fileImport" style="text-align:center;cursor:pointer">ファイルから読み込む</label>
-        <input type="file" id="fileImport" accept=".json,application/json" hidden>
+        <input type="file" id="fileImport" hidden>
+        <button class="btn btn--ghost" id="btnImport" type="button">上の欄に貼り付けて読み込む</button>
+        <p class="hint" id="ioMsg" style="margin:0">—</p>
       </div>
     </div>
 
@@ -1255,36 +1268,51 @@ function bind(){
       a.download='kai-toroku-'+todayISO()+'.json';
       document.body.appendChild(a);a.click();
       setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1500);
-      toast('バックアップを書き出しました');
+      ioMsg('ダウンロードフォルダに保存しました（'+a.download+'）');
     }catch(err){
       $('#jsonBox').hidden=false;jsonVisible=true;
       $('#jsonBox').value=data;$('#btnShowJson').textContent='閉じる';
-      toast('この環境では保存できないため、テキストに出力しました');
+      ioMsg('この環境では保存できないため、上の欄に出力しました。内容をコピーしてください',true);
     }
   });
 
-  function doImport(text){
-    try{
-      var d=JSON.parse(text);
-      if(!d||!Array.isArray(d.plans))throw new Error('形式が違います');
-      plans=d.plans;logs=Array.isArray(d.logs)?d.logs:[];
-      draft={};packSel={};save();renderAll();go('stock');
-      toast('読み込みました（契約'+plans.length+'件・履歴'+logs.length+'件）');
-    }catch(err){toast('読み込めませんでした：'+err.message)}
+  function ioMsg(msg,bad){
+    var el=$('#ioMsg');
+    if(el){el.textContent=msg;el.style.color=bad?'#eab5a5':'var(--brass-2)'}
+    toast(msg);
+  }
+  function doImport(text,fromFile){
+    var t=String(text==null?'':text).trim();
+    if(!t){ioMsg('中身が空でした',true);return}
+    if(/^<!doctype/i.test(t)||/^<html/i.test(t)||/回数台帳/i.test(t.slice(0,400))&&/^\s*</.test(t)){
+      ioMsg('これはアプリ本体（HTML）のようです。バックアップのJSONファイルを選んでください',true);return;
+    }
+    var d;
+    try{d=JSON.parse(t)}
+    catch(err){ioMsg('JSONとして読めませんでした。コピーの範囲が途中で切れていないか確認してください',true);return}
+    var pl=d&&d.plans?d.plans:(Array.isArray(d)?d:null);
+    if(!Array.isArray(pl)){ioMsg('バックアップの形式ではありません（plans が見つかりません）',true);return}
+    if(!pl.length&&!confirm('契約が0件のバックアップです。読み込むと、いまのデータが空になります。続けますか？'))return;
+    plans=pl;logs=Array.isArray(d.logs)?d.logs:[];
+    draft={};packSel={};save();renderAll();
+    if(!fromFile)go('stock');
+    ioMsg('読み込みました：契約'+plans.length+'件・履歴'+logs.length+'件');
   }
   $('#btnImport').addEventListener('click',function(){
     var box=$('#jsonBox');
     if(box.hidden||!box.value.trim()){
       box.hidden=false;jsonVisible=true;$('#btnShowJson').textContent='閉じる';
-      toast('まずバックアップの内容を貼り付けてください');
+      ioMsg('上の欄にバックアップの内容を貼り付けて、もう一度このボタンを押してください',true);
+      box.focus();
       return;
     }
-    doImport(box.value);
+    doImport(box.value,false);
   });
   $('#fileImport').addEventListener('change',function(){
     var f=this.files&&this.files[0];if(!f)return;
+    if(/\.html?$/i.test(f.name)){ioMsg('それはアプリ本体（HTML）です。同じフォルダにあるJSONファイルを選んでください',true);this.value='';return}
     var r=new FileReader();
-    r.onload=function(){doImport(String(r.result))};
+    r.onload=function(){doImport(String(r.result),true)};
     r.readAsText(f);
   });
 
