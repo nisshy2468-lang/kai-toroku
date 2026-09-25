@@ -250,6 +250,8 @@ input:focus,textarea:focus,select:focus,button:focus-visible,a:focus-visible{out
 .log__note{margin:8px 0 0;font-size:12px;color:var(--mute);line-height:1.65;border-left:2px solid rgba(148,137,122,.35);padding-left:9px;word-break:break-word}
 .log__del{margin-top:9px;background:transparent;border:0;color:var(--mute);font-family:var(--font-b);font-size:11.5px;text-decoration:underline;cursor:pointer;padding:2px 0}
 .log__del:hover{color:#eab5a5}
+.ver{margin:26px 0 8px;text-align:center;font-family:var(--font-m);font-size:11px;letter-spacing:.06em;color:var(--mute);line-height:1.8}
+.ver b{color:var(--brass-2);font-weight:600}
 .log__weight{display:inline-block;margin:9px 0 0;font-family:var(--font-m);font-size:11.5px;color:var(--sumi-2);background:rgba(255,255,255,.55);border-radius:99px;padding:3px 10px}
 .log__only{color:var(--mute)}
 .wcard{border:1px solid rgba(201,162,77,.3);border-radius:var(--r-md);background:rgba(255,255,255,.035);padding:13px;margin-bottom:16px}
@@ -476,6 +478,8 @@ input:focus,textarea:focus,select:focus,button:focus-visible,a:focus-visible{out
       <b>⑤残数を直す</b>　サロンで確認した実際の残数がわかったら、チケットの「残数を直す」に入力します。差は「残数調整」として履歴に残り、あとから見返せます。<br><br>
       <b>⑥体重</b>　「記録」タブの体重欄に入れて保存すると、履歴タブの上に最新の体重・前回比・推移グラフが出ます。施術を受けない日でも、体重だけの記録ができます。</p>
     </div>
+
+    <p class="ver" id="verLine">—</p>
   </section>
 </div>
 
@@ -527,6 +531,8 @@ input:focus,textarea:focus,select:focus,button:focus-visible,a:focus-visible{out
 (function(){
 'use strict';
 var KEY='dandy-ledger-v1';
+var APP_VER='1.6';
+var APP_VER_DATE='2026-09-26';
 var $=function(s){return document.querySelector(s)};
 var plans=[],logs=[],draft={},packSel={},storageOK=true,jsonVisible=false;
 
@@ -596,6 +602,11 @@ function load(){
     if(raw){var d=JSON.parse(raw);plans=d.plans||[];logs=d.logs||[]}
   }catch(e){storageOK=false}
 }
+function renderVer(){
+  var el=$('#verLine');if(!el)return;
+  el.innerHTML='回数台帳 <b>バージョン '+APP_VER+'</b>（'+APP_VER_DATE+'）<br>更新が届いたかは、この数字で確認できます';
+}
+
 function renderStorage(){
   var el=$('#storageMsg');
   if(storageOK){
@@ -924,7 +935,7 @@ function renderWeight(){
   host.innerHTML=html;
 }
 
-function renderAll(){renderTop();renderTickets();renderPicks();renderPacks();renderPreview();renderLogs();renderWeight();updateWeightHint();renderStorage()}
+function renderAll(){renderTop();renderTickets();renderPicks();renderPacks();renderPreview();renderLogs();renderWeight();updateWeightHint();renderStorage();renderVer()}
 
 /* ---------- sheet ---------- */
 function openSheet(html){
