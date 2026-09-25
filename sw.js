@@ -1,4 +1,4 @@
-const CACHE='kai-toroku-v1';
+const CACHE='kai-toroku-v2';
 const ASSETS=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(ASSETS)}).then(function(){return self.skipWaiting()}));
@@ -10,6 +10,14 @@ self.addEventListener('activate',function(e){
 });
 self.addEventListener('fetch',function(e){
   if(e.request.method!=='GET')return;
+  var isPage=e.request.mode==='navigate'||e.request.destination==='document';
+  if(isPage){
+    e.respondWith(fetch(e.request).then(function(res){
+      var cp=res.clone();caches.open(CACHE).then(function(c){c.put('./index.html',cp)});
+      return res;
+    }).catch(function(){return caches.match('./index.html')}));
+    return;
+  }
   e.respondWith(caches.match(e.request).then(function(r){
     return r || fetch(e.request).then(function(res){
       var cp=res.clone();
